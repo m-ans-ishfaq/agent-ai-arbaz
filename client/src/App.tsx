@@ -3,6 +3,7 @@ import axios from 'axios'
 
 export function App() {
   const [text, setText] = useState('')
+  const [hits, setHits] = useState<null|Boolean>(null);
   const [response, setResponse] = useState('')
   const [loading, setLoading] = useState(false) // Loading state to track the request progress
 
@@ -21,6 +22,8 @@ export function App() {
           </li>
         )
       })
+      if (res.data.hits.hits.length) setHits(true);
+      else setHits(false);
       setResponse(formattedResponse) // Set the formatted response
     } catch (err) {
       setResponse('Error sending data.')
@@ -56,6 +59,9 @@ export function App() {
             <p className="text-green-600">{response}</p>
           )}
         </div>
+      )}
+      {hits === false && (
+        <p className='text-red-600'>Not Found</p>
       )}
     </div>
   )
