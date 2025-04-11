@@ -61,7 +61,7 @@ export function App() {
         </div>
       )}
       {hits === false && (
-        <p className='text-red-600'>Not Found</p>
+        <p className='text-red-600'>There is no data available for this query</p>
       )}
     </div>
   )
