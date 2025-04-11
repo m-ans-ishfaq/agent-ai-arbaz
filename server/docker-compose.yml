@@ -1,0 +1,22 @@
+version: '3.7'
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.13.0
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=nqwklXklwn645!
+      - plugins.security.ssl.http.enabled=false
+    ports:
+      - "9200:9200"   # OpenSearch HTTP
+      - "9300:9300"   # OpenSearch transport
+    volumes:
+      - ./server/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+    networks:
+      - opensearch-net
+    restart: always
+
+networks:
+  opensearch-net:
+    driver: bridge
