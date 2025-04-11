@@ -3,11 +3,13 @@ const cors = require("cors");
 const axios = require("axios");
 const https = require("https");
 const fs = require("fs");
-
+const { GoogleGenAI } = require("@google/genai");
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const GEMINI_API_KEY = "AIzaSyCfQn1aMgpILJfgKac2frcllzVYnGkFqCs";
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 const OPENAI_API_KEY =
   "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"; // <- Replace this with your real key
 const OPENSEARCH_URL = "https://localhost:9200"; // OpenSearch URL (HTTPS)
@@ -39,54 +41,32 @@ app.post("/api/submit", async (req, res) => {
 
   try {
     // Request OpenAI to generate OpenSearch query in JSON format
-    const openaiRes = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You convert natural language into OpenSearch JSON queries. Respond ONLY with pure JSON. Do not explain anything. No markdown. No formatting. No strings. Just valid JSON. The schema for the 'orders' index is as follows: The 'orders' index has the following fields - 'id' (integer, unique identifier), 'name' (string), 'location' (string), 'total' (numeric). You should only generate queries related to the 'orders' data, using these fields.",
-          },
-          {
-            role: "user",
-            content: `Create an OpenSearch query for: ${userQuery}`,
-          },
-        ],
-        temperature: 0,
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: userQuery,
+      config: {
+        systemInstruction: `You convert natural language into OpenSearch JSON queries. Respond ONLY with pure JSON. Do not explain anything. No markdown. No formatting. No strings. Just valid JSON. The schema for the 'orders' index is as follows: The 'orders' index has the following fields - 'id' (integer, unique identifier), 'name' (string), 'location' (string), 'total' (numeric). You should only generate queries related to the 'orders' data, using these fields. Also don't use bool with must, prefer using match`,
       },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    });
+    let jsonString = response.text;
 
-    const rawContent = openaiRes.data.choices[0].message.content.trim();
-
-    let parsedQuery;
-    try {
-      parsedQuery = JSON.parse(rawContent);
-      console.log("Generated OpenSearch query:", parsedQuery);
-    } catch (e) {
-      console.error("OpenAI returned invalid JSON:", rawContent);
-      return res
-        .status(500)
-        .json({ error: "OpenAI returned malformed JSON.", raw: rawContent });
+    // Remove ```json and ``` if they exist
+    if (jsonString.startsWith("```json")) {
+      jsonString = jsonString.substring(7); // Remove "```json"
+    }
+    if (jsonString.endsWith("```")) {
+      jsonString = jsonString.slice(0, -3); // remove "```"
     }
 
-    // Send the OpenSearch query to OpenSearch and get the response
+    const parsedQuery = JSON.parse(jsonString);
+    console.log("Query", JSON.stringify(parsedQuery));
     const opensearchRes = await axiosInstance.post(
       "/orders/_search",
       parsedQuery
     );
-
-    // Return the search results from OpenSearch
     res.json(opensearchRes.data);
   } catch (error) {
-    console.error("Error:", error.response?.data || error.message);
+    console.error("Error:", error);
     res.status(500).json({ error: "Failed to process request." });
   }
 });
