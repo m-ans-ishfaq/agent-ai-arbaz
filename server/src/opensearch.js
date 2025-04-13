@@ -2,19 +2,20 @@ const express = require('express');
 const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
 
 const app = express();
-const port = 3001;
+const port = 3002;
 
 // OpenSearch URL and credentials
 const OPENSEARCH_URL = 'https://localhost:9200';
 const OPENSEARCH_USER = 'admin'; // Default username (unless changed)
-const OPENSEARCH_PASSWORD = 'nqwklXklwn6342$!@'; // Your password
+const OPENSEARCH_PASSWORD = 'nqwklXklwn6342*^&('; // Your password
 
 // Load SSL certificate files
 const options = {
-    key: fs.readFileSync('./localhost-key.pem'),  // Private key
-    cert: fs.readFileSync('./localhost.pem'), // Your certificate file
+    key: fs.readFileSync(path.resolve("../certs/localhost-key.pem")), // Private key
+      cert: fs.readFileSync(path.resolve("../certs/localhost.pem")), // Your certificate file
   rejectUnauthorized: false  // Disable certificate validation (use with caution)
 };
 

@@ -3,6 +3,7 @@ const cors = require("cors");
 const axios = require("axios");
 const https = require("https");
 const fs = require("fs");
+const path = require("path");
 const { GoogleGenAI } = require("@google/genai");
 const app = express();
 app.use(cors());
@@ -10,16 +11,14 @@ app.use(express.json());
 
 const GEMINI_API_KEY = "AIzaSyCfQn1aMgpILJfgKac2frcllzVYnGkFqCs";
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-const OPENAI_API_KEY =
-  "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"; // <- Replace this with your real key
 const OPENSEARCH_URL = "https://localhost:9200"; // OpenSearch URL (HTTPS)
 const OPENSEARCH_USER = "admin"; // OpenSearch credentials
 const OPENSEARCH_PASSWORD = "nqwklXklwn6342$!@";
 
 // Load SSL certificate files
 const options = {
-  key: fs.readFileSync("./localhost-key.pem"), // Private key
-  cert: fs.readFileSync("./localhost.pem"), // Your certificate file
+  key: fs.readFileSync(path.resolve("../certs/localhost-key.pem")), // Private key
+  cert: fs.readFileSync(path.resolve("../certs/localhost.pem")), // Your certificate file
   rejectUnauthorized: false, // Disable certificate validation (use with caution)
 };
 
@@ -68,6 +67,43 @@ app.post("/api/submit", async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Failed to process request." });
+  }
+});
+
+app.post('/api/fill-data', async (req, res) => {
+  try {
+    const dummyData = [
+      { id: 1, name: 'John Doe', location: 'New York', total: 600 },
+      { id: 2, name: 'Jane Doe', location: 'San Francisco', total: 450 },
+      { id: 3, name: 'Michael Smith', location: 'Los Angeles', total: 750 },
+      { id: 4, name: 'Emily Davis', location: 'New York', total: 300 },
+      { id: 5, name: 'David Johnson', location: 'Chicago', total: 900 }
+    ];
+
+    // Insert dummy data into OpenSearch index
+    for (const data of dummyData) {
+      await axiosInstance.post(`/orders/_doc`, data);
+    }
+
+    res.status(200).send('Dummy data filled successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error filling data.');
+  }
+});
+
+// 2. Endpoint to remove all data
+app.post('/api/remove-data', async (req, res) => {
+  try {
+    // Delete all documents in the 'orders' index
+    await axiosInstance.delete(`/orders/_delete_by_query`, {
+      data: { query: { match_all: {} } }
+    });
+
+    res.status(200).send('Data removed successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error removing data.');
   }
 });
 
