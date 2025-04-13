@@ -95,14 +95,13 @@ app.post('/api/fill-data', async (req, res) => {
 // 2. Endpoint to remove all data
 app.post('/api/remove-data', async (req, res) => {
   try {
-    // Delete all documents in the 'orders' index
-    await axiosInstance.delete(`/orders/_delete_by_query`, {
-      data: { query: { match_all: {} } }
+    const response = await axiosInstance.post(`/orders/_delete_by_query`, {
+      query: { match_all: {} }
     });
 
     res.status(200).send('Data removed successfully.');
   } catch (error) {
-    console.error(error);
+    console.error(error.response?.data || error.message);
     res.status(500).send('Error removing data.');
   }
 });
